@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ก๊วนแบด 🏸</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f6f2; --card:#fff; --ink:#1d2b22; --muted:#6b7a70; --line:#e2e8e3;
+    --green:#1f7a4d; --green-soft:#e3f3ea; --amber:#b7791f; --amber-soft:#fdf3dc;
+    --red:#c0392b; --red-soft:#fbe7e5; --gray-soft:#eef1ef; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Prompt',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+  header{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+  header h1{font-size:18px;margin:0;flex:1;font-weight:600}
+  main{max-width:640px;margin:0 auto;padding:16px 12px 80px}
+  button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:8px 14px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .btn-light{background:rgba(255,255,255,.18);color:#fff}
+  .btn{background:var(--gray-soft);color:var(--ink)}
+  .btn-primary{background:var(--green);color:#fff}
+  .btn-danger{background:var(--red-soft);color:var(--red)}
+  .banner{background:var(--amber-soft);color:#7a5210;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:14px}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:2px solid transparent}
+  .card.highlight{border-color:var(--green)}
+  .card.past{opacity:.75}
+  .card h2{margin:0 0 4px;font-size:18px}
+  .meta{color:var(--muted);font-size:14px}
+  .meta a{color:var(--green)}
+  .badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--red-soft);color:var(--red);margin-left:6px;vertical-align:middle}
+  .note{background:var(--gray-soft);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:14px;white-space:pre-wrap}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0 8px;text-align:center}
+  .stat{border-radius:10px;padding:6px 2px}
+  .stat b{display:block;font-size:20px}
+  .stat span{font-size:12px}
+  .s-going{background:var(--green-soft);color:var(--green)}
+  .s-maybe{background:var(--amber-soft);color:var(--amber)}
+  .s-no{background:var(--red-soft);color:var(--red)}
+  .s-pending{background:var(--gray-soft);color:var(--muted)}
+  .bar{height:8px;background:var(--gray-soft);border-radius:99px;overflow:hidden;margin-bottom:4px}
+  .bar i{display:block;height:100%;background:var(--green)}
+  .hint{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .vote{border-top:1px solid var(--line);margin-top:10px;padding-top:12px}
+  .vote label{font-size:14px;color:var(--muted)}
+  select,input,textarea{font:inherit;width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+  .vote select{margin:4px 0 10px}
+  .vote-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .vote-btns button{padding:12px 4px;font-weight:500;background:var(--gray-soft);border:2px solid transparent}
+  .vote-btns button.on.going{background:var(--green);color:#fff}
+  .vote-btns button.on.maybe{background:var(--amber);color:#fff}
+  .vote-btns button.on.no{background:var(--red);color:#fff}
+  .lists{margin-top:12px;font-size:14px}
+  .lists div{margin:4px 0}
+  .lists b{font-weight:500}
+  .chip{display:inline-block;background:var(--gray-soft);border-radius:99px;padding:1px 9px;margin:2px 2px 0 0;font-size:13px}
+  .chip.me{outline:2px solid var(--green)}
+  .chip .x{color:var(--red);margin-left:4px;cursor:pointer}
+  .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .actions button{font-size:13px;padding:6px 10px}
+  .section-title{font-size:14px;color:var(--muted);margin:22px 4px 8px}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px}
+  .fab{position:fixed;right:16px;bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.2);padding:12px 18px;border-radius:99px}
+  dialog{border:0;border-radius:var(--radius);padding:0;width:min(520px,94vw);max-height:92vh}
+  dialog::backdrop{background:rgba(0,0,0,.4)}
+  dialog form{padding:18px}
+  dialog h3{margin:0 0 12px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:3px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="groupName">🏸 ก๊วนแบด</h1>
+  <button class="btn-light" id="adminBtn">แอดมิน</button>
+</header>
+
+<main>
+  <div id="banner"></div>
+  <div id="app"><div class="empty">กำลังโหลด…</div></div>
+</main>
+
+<button class="btn-primary fab" id="newBtn" hidden>+ สร้างนัด</button>
+
+<!-- เข้าโหมดแอดมิน -->
+<dialog id="pinDlg">
+  <form method="dialog" id="pinForm">
+    <h3>เข้าโหมดแอดมิน</h3>
+    <div class="field"><input id="pinInput" type="password" inputmode="numeric" placeholder="รหัสแอดมิน" autocomplete="off"></div>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel" formnovalidate>ยกเลิก</button>
+      <button class="btn-primary" value="ok">เข้าสู่ระบบ</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- สร้าง/แก้นัด -->
+<dialog id="evDlg">
+  <form method="dialog" id="evForm">
+    <h3 id="evDlgTitle">สร้างนัดตีแบด</h3>
+    <input type="hidden" name="id">
+    <div class="field"><label>ชื่อนัด</label><input name="title" required placeholder="เช่น ตีแบดเย็นวันศุกร์"></div>
+    <div class="row">
+      <div class="field"><label>วันที่</label><input name="date" type="date" required></div>
+      <div class="field"><label>จำนวนคนสูงสุด (เว้นว่าง = ไม่จำกัด)</label><input name="maxPlayers" type="number" min="1" placeholder="เช่น 12"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>เวลาเริ่ม</label><input name="timeStart" type="time"></div>
+      <div class="field"><label>เวลาเลิก</label><input name="timeEnd" type="time"></div>
+    </div>
+    <div class="field"><label>สถานที่</label><input name="location" required placeholder="เช่น สนามแบด ABC ลาดพร้าว"></div>
+    <div class="field"><label>หมายเหตุ (ค่าคอร์ด ฯลฯ)</label><textarea name="note" rows="2" placeholder="เช่น หารค่าคอร์ด + ลูก คนละ ~150 บาท"></textarea></div>
+    <div class="field">
+      <label>รายชื่อคนที่ลงชื่อได้ (บรรทัดละชื่อ หรือคั่นด้วยจุลภาค)</label>
+      <textarea name="allowed" rows="6" required placeholder="บอล&#10;ต้น&#10;มายด์"></textarea>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn" value="cancel" formnovalidate>ยกเลิก</button>
+      <button class="btn-primary" value="ok">บันทึก</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ===== ตั้งค่าแอป =====
+// แก้ค่าตรงนี้ก่อนอัปขึ้น GitHub
+
+// ชื่อก๊วน (แสดงบนหัวเว็บ)
+const GROUP_NAME = 'ก๊วนแบดวันศุกร์';
+
+// รหัสแอดมิน ใช้เข้าโหมดสร้าง/แก้นัด
+// หมายเหตุ: เป็นแค่การซ่อนปุ่ม ไม่ได้กันคนที่ตั้งใจแกะโค้ด (ดู README)
+const ADMIN_PIN = '1234';
+
+// ค่า Firebase (คัดลอกจาก Firebase Console > Project settings > Your apps)
+// ถ้าเว้นว่าง apiKey ไว้ แอปจะเข้า "โหมดทดลอง" เก็บข้อมูลไว้แค่ในเครื่องตัวเอง
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyAF0XVXv4XyOryDRiFZ1PMNVp3Q8ddBiBc',
+  authDomain: 'badminton-d5c56.firebaseapp.com',
+  databaseURL: 'https://badminton-d5c56-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'badminton-d5c56',
+  storageBucket: 'badminton-d5c56.firebasestorage.app',
+  messagingSenderId: '1079800140229',
+  appId: '1:1079800140229:web:a79d3ee07922af03543bac',
+};
+
+// ===== จบส่วนตั้งค่า =====
+
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const keyOf = name => encodeURIComponent(name.trim()).replace(/\./g, '%2E'); // Firebase key ห้ามมี . # $ [ ] /
+const today = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD ตามเวลาเครื่อง
+const ME_KEY = 'badminton-me';
+const STATUS = {
+  going: { label: 'ไป', icon: '✅' },
+  maybe: { label: 'ไม่แน่ใจ', icon: '🤔' },
+  no:    { label: 'ไม่ไป', icon: '❌' },
+};
+
+let events = {};
+let isAdmin = sessionStorage.getItem('badminton-admin') === '1';
+let scrolledToHash = false;
+
+// ---------- ที่เก็บข้อมูล ----------
+function createLocalStore() {
+  const K = 'badminton-demo-events';
+  const listeners = [];
+  const read = () => { try { return JSON.parse(localStorage.getItem(K)) || {}; } catch { return {}; } };
+  const write = d => { localStorage.setItem(K, JSON.stringify(d)); listeners.forEach(f => f(read())); };
+  addEventListener('storage', e => { if (e.key === K) listeners.forEach(f => f(read())); });
+  return {
+    demo: true,
+    subscribe(cb) { listeners.push(cb); cb(read()); },
+    async saveEvent(id, data) { const d = read(); d[id] = { ...(d[id] || {}), ...data }; write(d); },
+    async deleteEvent(id) { const d = read(); delete d[id]; write(d); },
+    async setResponse(id, k, r) { const d = read(); if (!d[id]) return; d[id].responses = { ...(d[id].responses || {}), [k]: r }; write(d); },
+    async removeResponse(id, k) { const d = read(); if (d[id]?.responses) { delete d[id].responses[k]; write(d); } },
+  };
+}
+
+async function createFirebaseStore() {
+  const V = '10.12.2';
+  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+  const { getDatabase, ref, onValue, update, remove, set } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`);
+  const db = getDatabase(initializeApp(FIREBASE_CONFIG));
+  return {
+    demo: false,
+    subscribe(cb) {
+      onValue(ref(db, 'events'), s => cb(s.val() || {}),
+        err => showBanner('เชื่อมต่อ Firebase ไม่ได้: ' + err.message + ' (เช็ก Rules ของ Realtime Database)'));
+    },
+    saveEvent: (id, data) => update(ref(db, `events/${id}`), data),
+    deleteEvent: id => remove(ref(db, `events/${id}`)),
+    setResponse: (id, k, r) => set(ref(db, `events/${id}/responses/${k}`), r),
+    removeResponse: (id, k) => remove(ref(db, `events/${id}/responses/${k}`)),
+  };
+}
+
+// ---------- ตัวช่วย ----------
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function showBanner(html) { $('#banner').innerHTML = `<div class="banner">${html}</div>`; }
+function thaiDate(d) {
+  if (!d) return '';
+  return new Date(d + 'T00:00').toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+function timeText(ev) {
+  if (!ev.timeStart) return '';
+  return ev.timeStart + (ev.timeEnd ? '–' + ev.timeEnd : '') + ' น.';
+}
+function parseNames(text) {
+  return [...new Set(text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean))];
+}
+function linkTo(id) { return location.href.split('#')[0] + '#e=' + id; }
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta);
+    ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  toast('คัดลอกแล้ว');
+}
+
+function summarize(ev) {
+  const allowed = Object.values(ev.allowed || {});
+  const allowedSet = new Set(allowed);
+  const resp = Object.values(ev.responses || {}).filter(r => allowedSet.has(r.name)).sort((a, b) => a.at - b.at);
+  const by = { going: [], maybe: [], no: [] };
+  resp.forEach(r => by[r.status]?.push(r.name));
+  const max = Number(ev.maxPlayers) || 0;
+  const confirmed = max ? by.going.slice(0, max) : by.going;
+  const waitlist = max ? by.going.slice(max) : [];
+  const answered = new Set(resp.map(r => r.name));
+  const pending = allowed.filter(n => !answered.has(n));
+  const statusOf = Object.fromEntries(resp.map(r => [r.name, r.status]));
+  return { allowed, by, confirmed, waitlist, pending, max, statusOf };
+}
+
+function summaryText(ev) {
+  const s = summarize(ev);
+  const list = arr => arr.length ? arr.map((n, i) => `${i + 1}. ${n}`).join('\n') : '-';
+  return [
+    `🏸 ${ev.title}`,
+    `📅 ${thaiDate(ev.date)} ${timeText(ev)}`.trim(),
+    `📍 ${ev.location}`,
+    ev.note ? `📝 ${ev.note}` : '',
+    '',
+    `✅ ไป (${s.confirmed.length}${s.max ? '/' + s.max : ''})`, list(s.confirmed),
+    s.waitlist.length ? `\n⏳ สำรอง\n${list(s.waitlist)}` : '',
+    `\n🤔 ไม่แน่ใจ: ${s.by.maybe.join(', ') || '-'}`,
+    `❓ ยังไม่ตอบ: ${s.pending.join(', ') || '-'}`,
+    '',
+    `👉 กดลงชื่อ: ${linkTo(ev.id)}`,
+  ].filter(x => x !== '').join('\n');
+}
+
+// ---------- แสดงผล ----------
+function chips(names, ev, me) {
+  if (!names.length) return '<span class="meta">-</span>';
+  return names.map(n => `<span class="chip ${n === me ? 'me' : ''}">${esc(n)}${
+    isAdmin ? `<span class="x" title="ลบคำตอบ" data-action="unvote" data-id="${ev.id}" data-name="${esc(n)}">×</span>` : ''
+  }</span>`).join('');
+}
+
+function cardHTML(ev, past) {
+  const s = summarize(ev);
+  const savedMe = localStorage.getItem(ME_KEY) || '';
+  const me = s.allowed.includes(savedMe) ? savedMe : '';
+  const myStatus = s.statusOf[me];
+  const closed = !!ev.closed;
+  const going = s.by.going.length;
+  const pct = s.max ? Math.min(100, Math.round(going / s.max * 100)) : 0;
+  const courtHint = going ? `ต้องจองประมาณ ${Math.max(1, Math.ceil(going / 6))}${Math.ceil(going / 4) > Math.ceil(going / 6) ? '–' + Math.ceil(going / 4) : ''} คอร์ด (4–6 คน/คอร์ด)` : '';
+  const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ev.location || '');
+
+  return `
+  <article class="card ${past ? 'past' : ''}" id="ev-${ev.id}">
+    <h2>${esc(ev.title)}${closed ? '<span class="badge">ปิดรับชื่อ</span>' : ''}</h2>
+    <div class="meta">📅 ${esc(thaiDate(ev.date))}${timeText(ev) ? ' · ⏰ ' + esc(timeText(ev)) : ''}</div>
+    <div class="meta">📍 <a href="${mapUrl}" target="_blank" rel="noopener">${esc(ev.location)}</a></div>
+    ${ev.note ? `<div class="note">${esc(ev.note)}</div>` : ''}
+
+    <div class="stats">
+      <div class="stat s-going"><b>${s.confirmed.length}${s.max ? `<small style="font-size:13px">/${s.max}</small>` : ''}</b><span>ไป${s.waitlist.length ? ` +สำรอง ${s.waitlist.length}` : ''}</span></div>
+      <div class="stat s-maybe"><b>${s.by.maybe.length}</b><span>ไม่แน่ใจ</span></div>
+      <div class="stat s-no"><b>${s.by.no.length}</b><span>ไม่ไป</span></div>
+      <div class="stat s-pending"><b>${s.pending.length}</b><span>ยังไม่ตอบ</span></div>
+    </div>
+    ${s.max ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}
+    ${courtHint ? `<div class="hint">${courtHint}</div>` : ''}
+
+    <div class="vote">
+      <label>ฉันคือ</label>
+      <select data-action="pickme" ${closed ? 'disabled' : ''}>
+        <option value="">— เลือกชื่อตัวเอง —</option>
+        ${s.allowed.map(n => `<option ${n === me ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+      </select>
+      <div class="vote-btns">
+        ${Object.entries(STATUS).map(([k, v]) => `
+          <button class="${k} ${myStatus === k ? 'on' : ''}" data-action="vote" data-id="${ev.id}" data-status="${k}"
+            ${!me || closed ? 'disabled' : ''}>${v.icon} ${v.label}</button>`).join('')}
+      </div>
+      ${!me && !closed ? '<div class="hint" style="margin-top:6px">เลือกชื่อก่อน แล้วกดว่าจะไปไหม</div>' : ''}
+      ${me && myStatus === 'going' && s.waitlist.includes(me) ? '<div class="hint" style="margin-top:6px;color:var(--amber)">คนเต็มแล้ว ตอนนี้คุณอยู่ในคิวสำรอง</div>' : ''}
+    </div>
+
+    <div class="lists">
+      <div><b>✅ ไป:</b> ${chips(s.confirmed, ev, me)}</div>
+      ${s.waitlist.length ? `<div><b>⏳ สำรอง:</b> ${chips(s.waitlist, ev, me)}</div>` : ''}
+      <div><b>🤔 ไม่แน่ใจ:</b> ${chips(s.by.maybe, ev, me)}</div>
+      <div><b>❌ ไม่ไป:</b> ${chips(s.by.no, ev, me)}</div>
+      <div><b>❓ ยังไม่ตอบ:</b> ${s.pending.length ? s.pending.map(n => `<span class="chip">${esc(n)}</span>`).join('') : '<span class="meta">-</span>'}</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" data-action="share" data-id="${ev.id}">🔗 คัดลอกลิงก์</button>
+      <button class="btn" data-action="summary" data-id="${ev.id}">📋 สรุปส่ง LINE</button>
+      ${isAdmin ? `
+        <button class="btn" data-action="edit" data-id="${ev.id}">✏️ แก้ไข</button>
+        <button class="btn" data-action="toggle" data-id="${ev.id}">${closed ? '🔓 เปิดรับชื่อ' : '🔒 ปิดรับชื่อ'}</button>
+        <button class="btn-danger" data-action="delete" data-id="${ev.id}">🗑 ลบ</button>` : ''}
+    </div>
+  </article>`;
+}
+
+function render() {
+  $('#adminBtn').textContent = isAdmin ? 'ออกจากแอดมิน' : 'แอดมิน';
+  $('#newBtn').hidden = !isAdmin;
+
+  const list = Object.entries(events).map(([id, e]) => ({ ...e, id }));
+  const t = today();
+  const upcoming = list.filter(e => e.date >= t).sort((a, b) => (a.date + (a.timeStart || '')).localeCompare(b.date + (b.timeStart || '')));
+  const past = list.filter(e => e.date < t).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+
+  let html = '';
+  if (!upcoming.length) {
+    html += `<div class="empty">ยังไม่มีนัดที่กำลังจะถึง${isAdmin ? '<br>กด “+ สร้างนัด” ด้านล่างได้เลย' : '<br>รอแอดมินสร้างนัดนะ 🏸'}</div>`;
+  } else {
+    html += upcoming.map(e => cardHTML(e, false)).join('');
+  }
+  if (past.length) {
+    html += `<div class="section-title">นัดที่ผ่านมา</div>` + past.map(e => cardHTML(e, true)).join('');
+  }
+  $('#app').innerHTML = html;
+
+  const m = location.hash.match(/^#e=(.+)$/);
+  if (m) {
+    const el = document.getElementById('ev-' + m[1]);
+    if (el) {
+      el.classList.add('highlight');
+      if (!scrolledToHash) { scrolledToHash = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    }
+  }
+}
+
+// ---------- เริ่มทำงาน ----------
+document.title = GROUP_NAME + ' 🏸';
+$('#groupName').textContent = '🏸 ' + GROUP_NAME;
+
+let store;
+try {
+  store = FIREBASE_CONFIG.apiKey ? await createFirebaseStore() : createLocalStore();
+} catch (err) {
+  showBanner('โหลด Firebase ไม่สำเร็จ ใช้โหมดทดลองแทน: ' + esc(err.message));
+  store = createLocalStore();
+}
+if (store.demo) showBanner('<b>โหมดทดลอง</b> ข้อมูลเก็บไว้แค่ในเครื่องนี้ เพื่อนจะยังไม่เห็น ใส่ค่า Firebase ใน index.html ก่อนใช้งานจริง (ดู README)');
+store.subscribe(data => { events = data; render(); });
+
+// ---------- ปุ่มต่าง ๆ ----------
+$('#app').addEventListener('change', e => {
+  if (e.target.dataset.action === 'pickme') {
+    localStorage.setItem(ME_KEY, e.target.value);
+    render();
+  }
+});
+
+$('#app').addEventListener('click', async e => {
+  const b = e.target.closest('[data-action]');
+  if (!b || b.tagName === 'SELECT') return;
+  const { action, id } = b.dataset;
+  const ev = events[id] ? { ...events[id], id } : null;
+  try {
+    if (action === 'vote') {
+      const me = localStorage.getItem(ME_KEY);
+      if (!me) return;
+      const current = summarize(ev).statusOf[me];
+      if (current === b.dataset.status) return; // กดซ้ำ ไม่ต้องทำอะไร
+      await store.setResponse(id, keyOf(me), { name: me, status: b.dataset.status, at: Date.now() });
+      toast(`${me}: ${STATUS[b.dataset.status].label} ✔`);
+    } else if (action === 'unvote') {
+      if (confirm(`ลบคำตอบของ ${b.dataset.name}?`)) await store.removeResponse(id, keyOf(b.dataset.name));
+    } else if (action === 'share') {
+      await copy(linkTo(id));
+    } else if (action === 'summary') {
+      await copy(summaryText(ev));
+    } else if (action === 'edit') {
+      openEventForm(ev);
+    } else if (action === 'toggle') {
+      await store.saveEvent(id, { closed: !ev.closed });
+    } else if (action === 'delete') {
+      if (confirm(`ลบนัด “${ev.title}” และคำตอบทั้งหมด?`)) await store.deleteEvent(id);
+    }
+  } catch (err) {
+    toast('บันทึกไม่สำเร็จ: ' + err.message);
+  }
+});
+
+// แอดมิน
+$('#adminBtn').addEventListener('click', () => {
+  if (isAdmin) {
+    isAdmin = false; sessionStorage.removeItem('badminton-admin'); render(); return;
+  }
+  $('#pinInput').value = ''; $('#pinDlg').showModal(); $('#pinInput').focus();
+});
+$('#pinDlg').addEventListener('close', () => {
+  if ($('#pinDlg').returnValue !== 'ok') return;
+  if ($('#pinInput').value === String(ADMIN_PIN)) {
+    isAdmin = true; sessionStorage.setItem('badminton-admin', '1'); render(); toast('เข้าโหมดแอดมินแล้ว');
+  } else toast('รหัสไม่ถูกต้อง');
+});
+
+// ฟอร์มนัด
+function openEventForm(ev) {
+  const f = $('#evForm');
+  f.reset();
+  $('#evDlgTitle').textContent = ev ? 'แก้ไขนัด' : 'สร้างนัดตีแบด';
+  if (ev) {
+    f.id.value = ev.id;
+    ['title', 'date', 'timeStart', 'timeEnd', 'location', 'note', 'maxPlayers'].forEach(k => f[k].value = ev[k] ?? '');
+    f.allowed.value = Object.values(ev.allowed || {}).join('\n');
+  } else {
+    // ใช้รายชื่อ/สถานที่จากนัดล่าสุดเป็นค่าเริ่มต้น
+    const last = Object.values(events).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+    f.id.value = '';
+    if (last) {
+      f.allowed.value = Object.values(last.allowed || {}).join('\n');
+      f.location.value = last.location || '';
+      f.timeStart.value = last.timeStart || '';
+      f.timeEnd.value = last.timeEnd || '';
+      f.maxPlayers.value = last.maxPlayers || '';
+      f.note.value = last.note || '';
+      f.title.value = last.title || '';
+    }
+  }
+  $('#evDlg').showModal();
+}
+$('#newBtn').addEventListener('click', () => openEventForm(null));
+
+$('#evDlg').addEventListener('close', async () => {
+  if ($('#evDlg').returnValue !== 'ok') return;
+  const f = $('#evForm');
+  const allowed = parseNames(f.allowed.value);
+  if (!allowed.length) { toast('ใส่รายชื่ออย่างน้อย 1 คน'); return; }
+  const data = {
+    title: f.title.value.trim(),
+    date: f.date.value,
+    timeStart: f.timeStart.value || '',
+    timeEnd: f.timeEnd.value || '',
+    location: f.location.value.trim(),
+    note: f.note.value.trim(),
+    maxPlayers: f.maxPlayers.value ? Number(f.maxPlayers.value) : 0,
+    allowed,
+  };
+  const isNew = !f.id.value;
+  const id = f.id.value || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  if (isNew) { data.createdAt = Date.now(); data.closed = false; }
+  try {
+    await store.saveEvent(id, data);
+    toast(isNew ? 'สร้างนัดแล้ว' : 'บันทึกแล้ว');
+    if (isNew) { history.replaceState(null, '', '#e=' + id); scrolledToHash = false; render(); }
+  } catch (err) { toast('บันทึกไม่สำเร็จ: ' + err.message); }
+});
+</script>
+</body>
+</html>
