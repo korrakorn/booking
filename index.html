@@ -39,7 +39,7 @@
   .meta a{color:var(--green)}
   .badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--red-soft);color:var(--red);margin-left:6px;vertical-align:middle}
   .note{background:var(--gray-soft);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:14px;white-space:pre-wrap}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0 8px;text-align:center}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0 8px;text-align:center}
   .stat{border-radius:10px;padding:6px 2px}
   .stat b{display:block;font-size:20px}
   .stat span{font-size:12px}
@@ -50,6 +50,7 @@
   .bar{height:8px;background:var(--gray-soft);border-radius:99px;overflow:hidden;margin-bottom:4px}
   .bar i{display:block;height:100%;background:var(--green)}
   .hint{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .rules{background:#fde8e6;border:2px solid var(--red);color:#9b1c12;border-radius:12px;padding:10px 14px;margin:2px 0 10px;font-weight:600;font-size:15px;line-height:1.7}
   .roster{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
   .row-p{display:grid;grid-template-columns:1fr repeat(3,auto);gap:6px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line)}
   .row-p:last-child{border-bottom:0}
@@ -67,7 +68,7 @@
   .vb.on.going{background:var(--green);color:#fff}
   .vb.on.maybe{background:var(--amber);color:#fff}
   .vb.on.no{background:var(--red);color:#fff}
-  @media (max-width:420px){ .vb span{display:none} .vb{padding:10px 14px;font-size:18px;min-width:48px;min-height:44px} .row-p{padding:8px 2px} .pname{font-size:16px} }
+  @media (max-width:420px){ .vb{padding:10px 14px;font-size:16px;min-height:44px} .row-p{padding:8px 2px} .pname{font-size:16px} }
   .chip{display:inline-block;background:var(--gray-soft);border-radius:99px;padding:1px 9px;margin:2px 2px 0 0;font-size:13px}
   .chip.me{outline:2px solid var(--green)}
   .chip .x{color:var(--red);margin-left:4px;cursor:pointer}
@@ -131,10 +132,7 @@
     <h3 id="evDlgTitle">สร้างนัดตีแบด</h3>
     <input type="hidden" name="id">
     <div class="field"><label>ชื่อนัด</label><input name="title" required placeholder="เช่น ตีแบดเย็นวันศุกร์"></div>
-    <div class="row">
-      <div class="field"><label>วันที่</label><input name="date" type="date" required></div>
-      <div class="field"><label>จำนวนคนสูงสุด (เว้นว่าง = ไม่จำกัด)</label><input name="maxPlayers" type="number" min="1" placeholder="เช่น 12"></div>
-    </div>
+    <div class="field"><label>วันที่</label><input name="date" type="date" required></div>
     <div class="row">
       <div class="field"><label>เวลาเริ่ม</label><input name="timeStart" type="time"></div>
       <div class="field"><label>เวลาเลิก</label><input name="timeEnd" type="time"></div>
@@ -166,6 +164,15 @@ const GROUP_NAME = 'ก๊วนแบด';
 // หมายเหตุ: เป็นแค่การซ่อนปุ่ม ไม่ได้กันคนที่ตั้งใจแกะโค้ด (ดู README)
 const ADMIN_PIN = '5555';
 
+// ข้อความแจ้งเตือนเหนือรายชื่อ (แก้ได้)
+const RULES = [
+  'ลงชื่อแล้วยกเลิก=เก็บเงินนะจ๊ะ',
+  'ไม่ลงชื่อ ไม่รับบวก ไม่รับรัก',
+];
+
+// ใช้คำนวณว่าต้องจองกี่คอร์ด
+const PLAYERS_PER_COURT = 8;
+
 // ค่า Firebase (คัดลอกจาก Firebase Console > Project settings > Your apps)
 // ถ้าเว้นว่าง apiKey ไว้ แอปจะเข้า "โหมดทดลอง" เก็บข้อมูลไว้แค่ในเครื่องตัวเอง
 const FIREBASE_CONFIG = {
@@ -188,7 +195,6 @@ const today = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD ตา
 const ME_KEY = 'badminton-me';
 const STATUS = {
   going: { label: 'ไป', icon: '✅' },
-  maybe: { label: 'ไม่แน่ใจ', icon: '🤔' },
   no:    { label: 'ไม่ไป', icon: '❌' },
 };
 
@@ -274,15 +280,13 @@ function summarize(ev) {
   const allowed = Object.values(ev.allowed || {});
   const allowedSet = new Set(allowed);
   const resp = Object.values(ev.responses || {}).filter(r => allowedSet.has(r.name)).sort((a, b) => a.at - b.at);
-  const by = { going: [], maybe: [], no: [] };
+  const by = { going: [], no: [] };
   resp.forEach(r => by[r.status]?.push(r.name));
-  const max = Number(ev.maxPlayers) || 0;
-  const confirmed = max ? by.going.slice(0, max) : by.going;
-  const waitlist = max ? by.going.slice(max) : [];
+  const confirmed = by.going;
   const answered = new Set(resp.filter(r => STATUS[r.status]).map(r => r.name));
   const pending = allowed.filter(n => !answered.has(n));
   const statusOf = Object.fromEntries(resp.filter(r => STATUS[r.status]).map(r => [r.name, r.status]));
-  return { allowed, by, confirmed, waitlist, pending, max, statusOf };
+  return { allowed, by, confirmed, pending, statusOf };
 }
 
 function summaryText(ev) {
@@ -295,9 +299,8 @@ function summaryText(ev) {
     ev.mapUrl ? `🗺 ${ev.mapUrl}` : '',
     ev.note ? `📝 ${ev.note}` : '',
     '',
-    `✅ ไป (${s.confirmed.length}${s.max ? '/' + s.max : ''})`, list(s.confirmed),
-    s.waitlist.length ? `\n⏳ สำรอง\n${list(s.waitlist)}` : '',
-    `\n🤔 ไม่แน่ใจ: ${s.by.maybe.join(', ') || '-'}`,
+    `✅ ไป (${s.confirmed.length})`, list(s.confirmed),
+    `\n❌ ไม่ไป: ${s.by.no.join(', ') || '-'}`,
     `❓ ยังไม่ตอบ: ${s.pending.join(', ') || '-'}`,
     '',
     `👉 กดลงชื่อ: ${linkTo(ev.id)}`,
@@ -313,7 +316,7 @@ function chips(names, ev, me) {
 }
 
 function logHTML(ev) {
-  const label = st => STATUS[st] ? STATUS[st].icon + ' ' + STATUS[st].label : '—';
+  const label = st => STATUS[st] ? STATUS[st].icon + ' ' + STATUS[st].label : st === 'maybe' ? '🤔 ไม่แน่ใจ' : '—';
   const rows = Object.values(ev.log || {}).sort((a, b) => b.at - a.at);
   if (!rows.length) return '<div class="log"><div class="hint">ยังไม่มีใครกด</div></div>';
   return `<div class="log">${rows.map(r => `<div class="log-row">
@@ -326,8 +329,7 @@ function cardHTML(ev, past) {
   const s = summarize(ev);
   const closed = !!ev.closed;
   const going = s.by.going.length;
-  const pct = s.max ? Math.min(100, Math.round(going / s.max * 100)) : 0;
-  const courtHint = going ? `ต้องจองประมาณ ${Math.max(1, Math.ceil(going / 6))}${Math.ceil(going / 4) > Math.ceil(going / 6) ? '–' + Math.ceil(going / 4) : ''} คอร์ด (4–6 คน/คอร์ด)` : '';
+  const courtHint = going ? `🏸 ต้องจอง ${Math.ceil(going / PLAYERS_PER_COURT)} คอร์ด (คอร์ดละ ${PLAYERS_PER_COURT} คน)` : '';
   const mapUrl = mapLink(ev);
 
   return `
@@ -338,21 +340,19 @@ function cardHTML(ev, past) {
     ${ev.note ? `<div class="note">${esc(ev.note)}</div>` : ''}
 
     <div class="stats">
-      <div class="stat s-going"><b>${s.confirmed.length}${s.max ? `<small style="font-size:13px">/${s.max}</small>` : ''}</b><span>ไป${s.waitlist.length ? ` +สำรอง ${s.waitlist.length}` : ''}</span></div>
-      <div class="stat s-maybe"><b>${s.by.maybe.length}</b><span>ไม่แน่ใจ</span></div>
+      <div class="stat s-going"><b>${going}</b><span>ไป</span></div>
       <div class="stat s-no"><b>${s.by.no.length}</b><span>ไม่ไป</span></div>
       <div class="stat s-pending"><b>${s.pending.length}</b><span>ยังไม่ตอบ</span></div>
     </div>
-    ${s.max ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}
     ${courtHint ? `<div class="hint">${courtHint}</div>` : ''}
 
     <div class="roster">
-      ${!closed ? `<div class="hint">หาชื่อตัวเองแล้วกดว่าจะไปไหม (กดซ้ำปุ่มเดิมเพื่อยกเลิก)</div>` : ''}
+      <div class="rules">⚠️ ${RULES.map(esc).join('<br>⚠️ ')}</div>
+      ${!closed ? `<div class="hint">หาชื่อตัวเองแล้วกด ไป หรือ ไม่ไป (กดซ้ำปุ่มเดิมเพื่อยกเลิก)</div>` : ''}
       ${s.allowed.map(n => {
         const st = s.statusOf[n];
-        const wait = s.waitlist.includes(n);
         return `<div class="row-p ${st || ''}">
-          <div class="pname">${esc(n)}${wait ? '<span class="tag">สำรอง</span>' : ''}</div>
+          <div class="pname">${esc(n)}</div>
           ${Object.entries(STATUS).map(([k, v]) => `<button class="vb ${k} ${st === k ? 'on' : ''}" data-action="vote" data-id="${ev.id}" data-name="${esc(n)}" data-status="${k}" ${closed ? 'disabled' : ''} title="${v.label}">${v.icon}<span> ${v.label}</span></button>`).join('')}
         </div>`;
       }).join('')}
@@ -471,7 +471,7 @@ function openEventForm(ev) {
   $('#evDlgTitle').textContent = ev ? 'แก้ไขนัด' : 'สร้างนัดตีแบด';
   if (ev) {
     f.id.value = ev.id;
-    ['title', 'date', 'timeStart', 'timeEnd', 'location', 'mapUrl', 'note', 'maxPlayers'].forEach(k => f[k].value = ev[k] ?? '');
+    ['title', 'date', 'timeStart', 'timeEnd', 'location', 'mapUrl', 'note'].forEach(k => f[k].value = ev[k] ?? '');
     f.allowed.value = Object.values(ev.allowed || {}).join('\n');
   } else {
     // ใช้รายชื่อ/สถานที่จากนัดล่าสุดเป็นค่าเริ่มต้น
@@ -483,7 +483,6 @@ function openEventForm(ev) {
       f.mapUrl.value = last.mapUrl || '';
       f.timeStart.value = last.timeStart || '';
       f.timeEnd.value = last.timeEnd || '';
-      f.maxPlayers.value = last.maxPlayers || '';
       f.note.value = last.note || '';
       f.title.value = last.title || '';
     }
@@ -505,7 +504,6 @@ $('#evDlg').addEventListener('close', async () => {
     location: f.location.value.trim(),
     mapUrl: cleanUrl(f.mapUrl.value),
     note: f.note.value.trim(),
-    maxPlayers: f.maxPlayers.value ? Number(f.maxPlayers.value) : 0,
     allowed,
   };
   const isNew = !f.id.value;
