@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>ก๊วนแบด 🏸</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,6 +13,13 @@
     --red:#c0392b; --red-soft:#fbe7e5; --gray-soft:#eef1ef; --radius:14px;
   }
   *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  /* ฟอนต์ 16px ขึ้นไป กัน iPhone ซูมเองตอนแตะช่อง */
+  select,input,textarea{font:inherit;font-size:16px;display:block;width:100%;max-width:100%;min-width:0;padding:12px 14px;min-height:48px;border:1px solid #cfd8d2;border-radius:12px;background:#fff;color:var(--ink);-webkit-appearance:none;appearance:none}
+  input[type=date],input[type=time]{text-align:left;line-height:1.3}
+  input::-webkit-date-and-time-value{text-align:left}
+  textarea{resize:vertical;line-height:1.5}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
   body{margin:0;font-family:'Prompt',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
   header{position:sticky;top:0;z-index:5;background:var(--green);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
   header h1{font-size:18px;margin:0;flex:1;font-weight:600}
@@ -60,7 +67,7 @@
   .vb.on.going{background:var(--green);color:#fff}
   .vb.on.maybe{background:var(--amber);color:#fff}
   .vb.on.no{background:var(--red);color:#fff}
-  @media (max-width:420px){ .vb span{display:none} .vb{padding:7px 12px;font-size:16px} }
+  @media (max-width:420px){ .vb span{display:none} .vb{padding:10px 14px;font-size:18px;min-width:48px;min-height:44px} .row-p{padding:8px 2px} .pname{font-size:16px} }
   .chip{display:inline-block;background:var(--gray-soft);border-radius:99px;padding:1px 9px;margin:2px 2px 0 0;font-size:13px}
   .chip.me{outline:2px solid var(--green)}
   .chip .x{color:var(--red);margin-left:4px;cursor:pointer}
@@ -69,14 +76,26 @@
   .section-title{font-size:14px;color:var(--muted);margin:22px 4px 8px}
   .empty{text-align:center;color:var(--muted);padding:40px 10px}
   .fab{position:fixed;right:16px;bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.2);padding:12px 18px;border-radius:99px}
-  dialog{border:0;border-radius:var(--radius);padding:0;width:min(520px,94vw);max-height:92vh}
+  dialog{border:0;border-radius:var(--radius);padding:0;width:min(520px,94vw);max-width:none;max-height:92vh;overflow:auto;overscroll-behavior:contain}
+  dialog form{display:block;width:100%}
+  body:has(dialog[open]){overflow:hidden}
   dialog::backdrop{background:rgba(0,0,0,.4)}
   dialog form{padding:18px}
   dialog h3{margin:0 0 12px}
-  .field{margin-bottom:10px}
-  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:3px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:14px;color:var(--muted);margin-bottom:5px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .dlg-actions button{min-height:48px;padding:10px 22px;font-size:16px}
+  @media (max-width:560px){
+    /* ฟอร์มเต็มจอบนมือถือ ช่องเรียงลงทีละช่อง ปุ่มบันทึกติดล่าง */
+    dialog{width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}
+    dialog form{padding:calc(16px + env(safe-area-inset-top)) 16px 0}
+    .row{grid-template-columns:1fr;gap:0}
+    .dlg-actions{position:sticky;bottom:0;background:#fff;margin:0 -16px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+    .dlg-actions button{flex:1}
+    .actions button{font-size:14px;padding:10px 12px}
+  }
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:99px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
   .toast.show{opacity:1}
 </style>
