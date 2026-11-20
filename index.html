@@ -43,18 +43,24 @@
   .bar{height:8px;background:var(--gray-soft);border-radius:99px;overflow:hidden;margin-bottom:4px}
   .bar i{display:block;height:100%;background:var(--green)}
   .hint{font-size:13px;color:var(--muted);margin-bottom:8px}
-  .vote{border-top:1px solid var(--line);margin-top:10px;padding-top:12px}
-  .vote label{font-size:14px;color:var(--muted)}
-  select,input,textarea{font:inherit;width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
-  .vote select{margin:4px 0 10px}
-  .vote-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .vote-btns button{padding:12px 4px;font-weight:500;background:var(--gray-soft);border:2px solid transparent}
-  .vote-btns button.on.going{background:var(--green);color:#fff}
-  .vote-btns button.on.maybe{background:var(--amber);color:#fff}
-  .vote-btns button.on.no{background:var(--red);color:#fff}
-  .lists{margin-top:12px;font-size:14px}
-  .lists div{margin:4px 0}
-  .lists b{font-weight:500}
+  .roster{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+  .row-p{display:grid;grid-template-columns:1fr repeat(3,auto);gap:6px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line)}
+  .row-p:last-child{border-bottom:0}
+  .pname{font-weight:500;overflow-wrap:anywhere}
+  .row-p.going .pname{color:var(--green)}
+  .row-p.no .pname{color:var(--muted);text-decoration:line-through}
+  .tag{font-size:11px;background:var(--amber-soft);color:var(--amber);border-radius:99px;padding:1px 7px;margin-left:6px;font-weight:400}
+  .left{display:block;font-size:11px;color:var(--muted);font-weight:400}
+  .left.zero{color:var(--red)}
+  .log{margin-top:10px;background:var(--gray-soft);border-radius:10px;padding:8px 10px;max-height:300px;overflow:auto;font-size:13px}
+  .log-row{padding:4px 0;border-bottom:1px solid var(--line)}
+  .log-row:last-child{border-bottom:0}
+  .log-time{color:var(--muted);margin-right:6px}
+  .vb{padding:7px 10px;font-size:14px;background:var(--gray-soft);white-space:nowrap}
+  .vb.on.going{background:var(--green);color:#fff}
+  .vb.on.maybe{background:var(--amber);color:#fff}
+  .vb.on.no{background:var(--red);color:#fff}
+  @media (max-width:420px){ .vb span{display:none} .vb{padding:7px 12px;font-size:16px} }
   .chip{display:inline-block;background:var(--gray-soft);border-radius:99px;padding:1px 9px;margin:2px 2px 0 0;font-size:13px}
   .chip.me{outline:2px solid var(--green)}
   .chip .x{color:var(--red);margin-left:4px;cursor:pointer}
@@ -115,6 +121,7 @@
       <div class="field"><label>เวลาเลิก</label><input name="timeEnd" type="time"></div>
     </div>
     <div class="field"><label>สถานที่</label><input name="location" required placeholder="เช่น สนามแบด ABC ลาดพร้าว"></div>
+    <div class="field"><label>ลิงก์ Google Maps (ไม่ใส่ก็ได้)</label><input name="mapUrl" type="url" inputmode="url" placeholder="วางลิงก์จาก Google Maps เช่น https://maps.app.goo.gl/..."></div>
     <div class="field"><label>หมายเหตุ (ค่าคอร์ด ฯลฯ)</label><textarea name="note" rows="2" placeholder="เช่น หารค่าคอร์ด + ลูก คนละ ~150 บาท"></textarea></div>
     <div class="field">
       <label>รายชื่อคนที่ลงชื่อได้ (บรรทัดละชื่อ หรือคั่นด้วยจุลภาค)</label>
@@ -134,11 +141,11 @@
 // แก้ค่าตรงนี้ก่อนอัปขึ้น GitHub
 
 // ชื่อก๊วน (แสดงบนหัวเว็บ)
-const GROUP_NAME = 'ก๊วนแบดวันศุกร์';
+const GROUP_NAME = 'ก๊วนแบด';
 
 // รหัสแอดมิน ใช้เข้าโหมดสร้าง/แก้นัด
 // หมายเหตุ: เป็นแค่การซ่อนปุ่ม ไม่ได้กันคนที่ตั้งใจแกะโค้ด (ดู README)
-const ADMIN_PIN = '1234';
+const ADMIN_PIN = '5555';
 
 // ค่า Firebase (คัดลอกจาก Firebase Console > Project settings > Your apps)
 // ถ้าเว้นว่าง apiKey ไว้ แอปจะเข้า "โหมดทดลอง" เก็บข้อมูลไว้แค่ในเครื่องตัวเอง
@@ -169,6 +176,8 @@ const STATUS = {
 let events = {};
 let isAdmin = sessionStorage.getItem('badminton-admin') === '1';
 let scrolledToHash = false;
+const MAX_EDITS = 3; // แก้คำตอบได้กี่ครั้งหลังตอบครั้งแรก (แอดมินแก้ได้ไม่จำกัด)
+const openLogs = new Set();
 
 // ---------- ที่เก็บข้อมูล ----------
 function createLocalStore() {
@@ -184,13 +193,14 @@ function createLocalStore() {
     async deleteEvent(id) { const d = read(); delete d[id]; write(d); },
     async setResponse(id, k, r) { const d = read(); if (!d[id]) return; d[id].responses = { ...(d[id].responses || {}), [k]: r }; write(d); },
     async removeResponse(id, k) { const d = read(); if (d[id]?.responses) { delete d[id].responses[k]; write(d); } },
+    async addLog(id, entry) { const d = read(); if (!d[id]) return; d[id].log = { ...(d[id].log || {}), [Date.now().toString(36) + Math.random().toString(36).slice(2, 5)]: entry }; write(d); },
   };
 }
 
 async function createFirebaseStore() {
   const V = '10.12.2';
   const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
-  const { getDatabase, ref, onValue, update, remove, set } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`);
+  const { getDatabase, ref, onValue, update, remove, set, push } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`);
   const db = getDatabase(initializeApp(FIREBASE_CONFIG));
   return {
     demo: false,
@@ -202,6 +212,7 @@ async function createFirebaseStore() {
     deleteEvent: id => remove(ref(db, `events/${id}`)),
     setResponse: (id, k, r) => set(ref(db, `events/${id}/responses/${k}`), r),
     removeResponse: (id, k) => remove(ref(db, `events/${id}/responses/${k}`)),
+    addLog: (id, entry) => push(ref(db, `events/${id}/log`), entry),
   };
 }
 
@@ -222,6 +233,15 @@ function timeText(ev) {
 function parseNames(text) {
   return [...new Set(text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean))];
 }
+// รับเฉพาะลิงก์ http/https (กันลิงก์แปลก ๆ)
+function cleanUrl(u) {
+  u = (u || '').trim();
+  const m = u.match(/https?:\/\/\S+/); // เผื่อวางมาพร้อมข้อความอื่น
+  return m ? m[0] : '';
+}
+function mapLink(ev) {
+  return ev.mapUrl || 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ev.location || '');
+}
 function linkTo(id) { return location.href.split('#')[0] + '#e=' + id; }
 async function copy(text) {
   try { await navigator.clipboard.writeText(text); }
@@ -241,10 +261,11 @@ function summarize(ev) {
   const max = Number(ev.maxPlayers) || 0;
   const confirmed = max ? by.going.slice(0, max) : by.going;
   const waitlist = max ? by.going.slice(max) : [];
-  const answered = new Set(resp.map(r => r.name));
+  const answered = new Set(resp.filter(r => STATUS[r.status]).map(r => r.name));
   const pending = allowed.filter(n => !answered.has(n));
-  const statusOf = Object.fromEntries(resp.map(r => [r.name, r.status]));
-  return { allowed, by, confirmed, waitlist, pending, max, statusOf };
+  const statusOf = Object.fromEntries(resp.filter(r => STATUS[r.status]).map(r => [r.name, r.status]));
+  const editsOf = Object.fromEntries(resp.map(r => [r.name, r.edits || 0]));
+  return { allowed, by, confirmed, waitlist, pending, max, statusOf, editsOf };
 }
 
 function summaryText(ev) {
@@ -254,6 +275,7 @@ function summaryText(ev) {
     `🏸 ${ev.title}`,
     `📅 ${thaiDate(ev.date)} ${timeText(ev)}`.trim(),
     `📍 ${ev.location}`,
+    ev.mapUrl ? `🗺 ${ev.mapUrl}` : '',
     ev.note ? `📝 ${ev.note}` : '',
     '',
     `✅ ไป (${s.confirmed.length}${s.max ? '/' + s.max : ''})`, list(s.confirmed),
@@ -273,22 +295,29 @@ function chips(names, ev, me) {
   }</span>`).join('');
 }
 
+function logHTML(ev) {
+  const label = st => STATUS[st] ? STATUS[st].icon + ' ' + STATUS[st].label : '—';
+  const rows = Object.values(ev.log || {}).sort((a, b) => b.at - a.at);
+  if (!rows.length) return '<div class="log"><div class="hint">ยังไม่มีใครกด</div></div>';
+  return `<div class="log">${rows.map(r => `<div class="log-row">
+    <span class="log-time">${new Date(r.at).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+    <b>${esc(r.name)}</b> ${label(r.from)} → ${label(r.to)}${r.byAdmin ? ' <span class="tag">แอดมิน</span>' : ''}
+  </div>`).join('')}</div>`;
+}
+
 function cardHTML(ev, past) {
   const s = summarize(ev);
-  const savedMe = localStorage.getItem(ME_KEY) || '';
-  const me = s.allowed.includes(savedMe) ? savedMe : '';
-  const myStatus = s.statusOf[me];
   const closed = !!ev.closed;
   const going = s.by.going.length;
   const pct = s.max ? Math.min(100, Math.round(going / s.max * 100)) : 0;
   const courtHint = going ? `ต้องจองประมาณ ${Math.max(1, Math.ceil(going / 6))}${Math.ceil(going / 4) > Math.ceil(going / 6) ? '–' + Math.ceil(going / 4) : ''} คอร์ด (4–6 คน/คอร์ด)` : '';
-  const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(ev.location || '');
+  const mapUrl = mapLink(ev);
 
   return `
   <article class="card ${past ? 'past' : ''}" id="ev-${ev.id}">
     <h2>${esc(ev.title)}${closed ? '<span class="badge">ปิดรับชื่อ</span>' : ''}</h2>
     <div class="meta">📅 ${esc(thaiDate(ev.date))}${timeText(ev) ? ' · ⏰ ' + esc(timeText(ev)) : ''}</div>
-    <div class="meta">📍 <a href="${mapUrl}" target="_blank" rel="noopener">${esc(ev.location)}</a></div>
+    <div class="meta">📍 <a href="${esc(mapUrl)}" target="_blank" rel="noopener">${esc(ev.location)}</a>${ev.mapUrl ? ` · <a href="${esc(mapUrl)}" target="_blank" rel="noopener">🗺 เปิดแผนที่</a>` : ''}</div>
     ${ev.note ? `<div class="note">${esc(ev.note)}</div>` : ''}
 
     <div class="stats">
@@ -300,37 +329,33 @@ function cardHTML(ev, past) {
     ${s.max ? `<div class="bar"><i style="width:${pct}%"></i></div>` : ''}
     ${courtHint ? `<div class="hint">${courtHint}</div>` : ''}
 
-    <div class="vote">
-      <label>ฉันคือ</label>
-      <select data-action="pickme" ${closed ? 'disabled' : ''}>
-        <option value="">— เลือกชื่อตัวเอง —</option>
-        ${s.allowed.map(n => `<option ${n === me ? 'selected' : ''}>${esc(n)}</option>`).join('')}
-      </select>
-      <div class="vote-btns">
-        ${Object.entries(STATUS).map(([k, v]) => `
-          <button class="${k} ${myStatus === k ? 'on' : ''}" data-action="vote" data-id="${ev.id}" data-status="${k}"
-            ${!me || closed ? 'disabled' : ''}>${v.icon} ${v.label}</button>`).join('')}
-      </div>
-      ${!me && !closed ? '<div class="hint" style="margin-top:6px">เลือกชื่อก่อน แล้วกดว่าจะไปไหม</div>' : ''}
-      ${me && myStatus === 'going' && s.waitlist.includes(me) ? '<div class="hint" style="margin-top:6px;color:var(--amber)">คนเต็มแล้ว ตอนนี้คุณอยู่ในคิวสำรอง</div>' : ''}
-    </div>
-
-    <div class="lists">
-      <div><b>✅ ไป:</b> ${chips(s.confirmed, ev, me)}</div>
-      ${s.waitlist.length ? `<div><b>⏳ สำรอง:</b> ${chips(s.waitlist, ev, me)}</div>` : ''}
-      <div><b>🤔 ไม่แน่ใจ:</b> ${chips(s.by.maybe, ev, me)}</div>
-      <div><b>❌ ไม่ไป:</b> ${chips(s.by.no, ev, me)}</div>
-      <div><b>❓ ยังไม่ตอบ:</b> ${s.pending.length ? s.pending.map(n => `<span class="chip">${esc(n)}</span>`).join('') : '<span class="meta">-</span>'}</div>
+    <div class="roster">
+      ${!closed ? `<div class="hint">หาชื่อตัวเองแล้วกดว่าจะไปไหม (กดซ้ำปุ่มเดิมเพื่อยกเลิก · แก้ได้ ${MAX_EDITS} ครั้ง)</div>` : ''}
+      ${s.allowed.map(n => {
+        const st = s.statusOf[n];
+        const wait = s.waitlist.includes(n);
+        const edits = s.editsOf[n] || 0;
+        const hasAnswered = n in s.editsOf;
+        const left = MAX_EDITS - edits;
+        const locked = hasAnswered && left <= 0 && !isAdmin;
+        const info = !hasAnswered ? '' : left > 0 ? `แก้ได้อีก ${left} ครั้ง` : 'แก้ครบแล้ว';
+        return `<div class="row-p ${st || ''}">
+          <div class="pname">${esc(n)}${wait ? '<span class="tag">สำรอง</span>' : ''}${info ? `<small class="left ${left <= 0 ? 'zero' : ''}">${info}</small>` : ''}</div>
+          ${Object.entries(STATUS).map(([k, v]) => `<button class="vb ${k} ${st === k ? 'on' : ''}" data-action="vote" data-id="${ev.id}" data-name="${esc(n)}" data-status="${k}" ${closed || locked ? 'disabled' : ''} title="${v.label}">${v.icon}<span> ${v.label}</span></button>`).join('')}
+        </div>`;
+      }).join('')}
     </div>
 
     <div class="actions">
       <button class="btn" data-action="share" data-id="${ev.id}">🔗 คัดลอกลิงก์</button>
       <button class="btn" data-action="summary" data-id="${ev.id}">📋 สรุปส่ง LINE</button>
       ${isAdmin ? `
+        <button class="btn" data-action="log" data-id="${ev.id}">📜 Log (${Object.keys(ev.log || {}).length})</button>
         <button class="btn" data-action="edit" data-id="${ev.id}">✏️ แก้ไข</button>
         <button class="btn" data-action="toggle" data-id="${ev.id}">${closed ? '🔓 เปิดรับชื่อ' : '🔒 ปิดรับชื่อ'}</button>
         <button class="btn-danger" data-action="delete" data-id="${ev.id}">🗑 ลบ</button>` : ''}
     </div>
+    ${isAdmin && openLogs.has(ev.id) ? logHTML(ev) : ''}
   </article>`;
 }
 
@@ -379,28 +404,28 @@ if (store.demo) showBanner('<b>โหมดทดลอง</b> ข้อมู�
 store.subscribe(data => { events = data; render(); });
 
 // ---------- ปุ่มต่าง ๆ ----------
-$('#app').addEventListener('change', e => {
-  if (e.target.dataset.action === 'pickme') {
-    localStorage.setItem(ME_KEY, e.target.value);
-    render();
-  }
-});
-
 $('#app').addEventListener('click', async e => {
   const b = e.target.closest('[data-action]');
-  if (!b || b.tagName === 'SELECT') return;
+  if (!b) return;
   const { action, id } = b.dataset;
   const ev = events[id] ? { ...events[id], id } : null;
   try {
     if (action === 'vote') {
-      const me = localStorage.getItem(ME_KEY);
-      if (!me) return;
-      const current = summarize(ev).statusOf[me];
-      if (current === b.dataset.status) return; // กดซ้ำ ไม่ต้องทำอะไร
-      await store.setResponse(id, keyOf(me), { name: me, status: b.dataset.status, at: Date.now() });
-      toast(`${me}: ${STATUS[b.dataset.status].label} ✔`);
-    } else if (action === 'unvote') {
-      if (confirm(`ลบคำตอบของ ${b.dataset.name}?`)) await store.removeResponse(id, keyOf(b.dataset.name));
+      const name = b.dataset.name;
+      const s = summarize(ev);
+      const prev = s.statusOf[name] || '';
+      const next = prev === b.dataset.status ? '' : b.dataset.status; // กดซ้ำ = ยกเลิก
+      const hasAnswered = name in s.editsOf;
+      const edits = s.editsOf[name] || 0;
+      if (hasAnswered && edits >= MAX_EDITS && !isAdmin) { toast(`${name} แก้ครบ ${MAX_EDITS} ครั้งแล้ว`); return; }
+      const newEdits = hasAnswered && !isAdmin ? edits + 1 : edits; // ตอบครั้งแรกไม่นับ แอดมินแก้ไม่นับ
+      const at = Date.now();
+      await store.setResponse(id, keyOf(name), { name, status: next, at, edits: newEdits });
+      await store.addLog(id, { name, from: prev, to: next, at, byAdmin: isAdmin });
+      toast(next ? `${name}: ${STATUS[next].label} ✔` : `${name}: ยกเลิกคำตอบ`);
+    } else if (action === 'log') {
+      openLogs.has(id) ? openLogs.delete(id) : openLogs.add(id);
+      render();
     } else if (action === 'share') {
       await copy(linkTo(id));
     } else if (action === 'summary') {
@@ -438,7 +463,7 @@ function openEventForm(ev) {
   $('#evDlgTitle').textContent = ev ? 'แก้ไขนัด' : 'สร้างนัดตีแบด';
   if (ev) {
     f.id.value = ev.id;
-    ['title', 'date', 'timeStart', 'timeEnd', 'location', 'note', 'maxPlayers'].forEach(k => f[k].value = ev[k] ?? '');
+    ['title', 'date', 'timeStart', 'timeEnd', 'location', 'mapUrl', 'note', 'maxPlayers'].forEach(k => f[k].value = ev[k] ?? '');
     f.allowed.value = Object.values(ev.allowed || {}).join('\n');
   } else {
     // ใช้รายชื่อ/สถานที่จากนัดล่าสุดเป็นค่าเริ่มต้น
@@ -447,6 +472,7 @@ function openEventForm(ev) {
     if (last) {
       f.allowed.value = Object.values(last.allowed || {}).join('\n');
       f.location.value = last.location || '';
+      f.mapUrl.value = last.mapUrl || '';
       f.timeStart.value = last.timeStart || '';
       f.timeEnd.value = last.timeEnd || '';
       f.maxPlayers.value = last.maxPlayers || '';
@@ -469,6 +495,7 @@ $('#evDlg').addEventListener('close', async () => {
     timeStart: f.timeStart.value || '',
     timeEnd: f.timeEnd.value || '',
     location: f.location.value.trim(),
+    mapUrl: cleanUrl(f.mapUrl.value),
     note: f.note.value.trim(),
     maxPlayers: f.maxPlayers.value ? Number(f.maxPlayers.value) : 0,
     allowed,
