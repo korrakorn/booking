@@ -195,7 +195,6 @@ const STATUS = {
 let events = {};
 let isAdmin = sessionStorage.getItem('badminton-admin') === '1';
 let scrolledToHash = false;
-const MAX_EDITS = 3; // แก้คำตอบได้กี่ครั้งหลังตอบครั้งแรก (แอดมินแก้ได้ไม่จำกัด)
 const openLogs = new Set();
 
 // ---------- ที่เก็บข้อมูล ----------
@@ -283,8 +282,7 @@ function summarize(ev) {
   const answered = new Set(resp.filter(r => STATUS[r.status]).map(r => r.name));
   const pending = allowed.filter(n => !answered.has(n));
   const statusOf = Object.fromEntries(resp.filter(r => STATUS[r.status]).map(r => [r.name, r.status]));
-  const editsOf = Object.fromEntries(resp.map(r => [r.name, r.edits || 0]));
-  return { allowed, by, confirmed, waitlist, pending, max, statusOf, editsOf };
+  return { allowed, by, confirmed, waitlist, pending, max, statusOf };
 }
 
 function summaryText(ev) {
@@ -349,18 +347,13 @@ function cardHTML(ev, past) {
     ${courtHint ? `<div class="hint">${courtHint}</div>` : ''}
 
     <div class="roster">
-      ${!closed ? `<div class="hint">หาชื่อตัวเองแล้วกดว่าจะไปไหม (กดซ้ำปุ่มเดิมเพื่อยกเลิก · แก้ได้ ${MAX_EDITS} ครั้ง)</div>` : ''}
+      ${!closed ? `<div class="hint">หาชื่อตัวเองแล้วกดว่าจะไปไหม (กดซ้ำปุ่มเดิมเพื่อยกเลิก)</div>` : ''}
       ${s.allowed.map(n => {
         const st = s.statusOf[n];
         const wait = s.waitlist.includes(n);
-        const edits = s.editsOf[n] || 0;
-        const hasAnswered = n in s.editsOf;
-        const left = MAX_EDITS - edits;
-        const locked = hasAnswered && left <= 0 && !isAdmin;
-        const info = !hasAnswered ? '' : left > 0 ? `แก้ได้อีก ${left} ครั้ง` : 'แก้ครบแล้ว';
         return `<div class="row-p ${st || ''}">
-          <div class="pname">${esc(n)}${wait ? '<span class="tag">สำรอง</span>' : ''}${info ? `<small class="left ${left <= 0 ? 'zero' : ''}">${info}</small>` : ''}</div>
-          ${Object.entries(STATUS).map(([k, v]) => `<button class="vb ${k} ${st === k ? 'on' : ''}" data-action="vote" data-id="${ev.id}" data-name="${esc(n)}" data-status="${k}" ${closed || locked ? 'disabled' : ''} title="${v.label}">${v.icon}<span> ${v.label}</span></button>`).join('')}
+          <div class="pname">${esc(n)}${wait ? '<span class="tag">สำรอง</span>' : ''}</div>
+          ${Object.entries(STATUS).map(([k, v]) => `<button class="vb ${k} ${st === k ? 'on' : ''}" data-action="vote" data-id="${ev.id}" data-name="${esc(n)}" data-status="${k}" ${closed ? 'disabled' : ''} title="${v.label}">${v.icon}<span> ${v.label}</span></button>`).join('')}
         </div>`;
       }).join('')}
     </div>
@@ -434,12 +427,8 @@ $('#app').addEventListener('click', async e => {
       const s = summarize(ev);
       const prev = s.statusOf[name] || '';
       const next = prev === b.dataset.status ? '' : b.dataset.status; // กดซ้ำ = ยกเลิก
-      const hasAnswered = name in s.editsOf;
-      const edits = s.editsOf[name] || 0;
-      if (hasAnswered && edits >= MAX_EDITS && !isAdmin) { toast(`${name} แก้ครบ ${MAX_EDITS} ครั้งแล้ว`); return; }
-      const newEdits = hasAnswered && !isAdmin ? edits + 1 : edits; // ตอบครั้งแรกไม่นับ แอดมินแก้ไม่นับ
       const at = Date.now();
-      await store.setResponse(id, keyOf(name), { name, status: next, at, edits: newEdits });
+      await store.setResponse(id, keyOf(name), { name, status: next, at });
       await store.addLog(id, { name, from: prev, to: next, at, byAdmin: isAdmin });
       toast(next ? `${name}: ${STATUS[next].label} ✔` : `${name}: ยกเลิกคำตอบ`);
     } else if (action === 'log') {
