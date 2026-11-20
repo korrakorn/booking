@@ -166,12 +166,12 @@ const ADMIN_PIN = '5555';
 
 // ข้อความแจ้งเตือนเหนือรายชื่อ (แก้ได้)
 const RULES = [
-  'ลงชื่อแล้วยกเลิก=เก็บเงินนะจ๊ะ',
-  'ไม่ลงชื่อ ไม่รับบวก ไม่รับรัก',
+  'ลงชื่อแล้วยกเลิก ขออนุญาตเก็บเงิน',
+  'ไม่ลงชื่อ ไม่รับบวก',
 ];
 
-// ใช้คำนวณว่าต้องจองกี่คอร์ด
-const PLAYERS_PER_COURT = 8;
+// ข้อความใต้ตัวเลขจำนวนคน
+const COURT_NOTE = 'ขั้นต่ำ 1 คอร์ด = 4 คน';
 
 // ค่า Firebase (คัดลอกจาก Firebase Console > Project settings > Your apps)
 // ถ้าเว้นว่าง apiKey ไว้ แอปจะเข้า "โหมดทดลอง" เก็บข้อมูลไว้แค่ในเครื่องตัวเอง
@@ -329,7 +329,7 @@ function cardHTML(ev, past) {
   const s = summarize(ev);
   const closed = !!ev.closed;
   const going = s.by.going.length;
-  const courtHint = going ? `🏸 ต้องจอง ${Math.ceil(going / PLAYERS_PER_COURT)} คอร์ด (คอร์ดละ ${PLAYERS_PER_COURT} คน)` : '';
+  const courtHint = COURT_NOTE ? `🏸 ${esc(COURT_NOTE)}` : '';
   const mapUrl = mapLink(ev);
 
   return `
